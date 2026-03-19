@@ -157,6 +157,23 @@ h2 .o{-webkit-text-stroke:2px rgba(240,235,227,.5);color:transparent}
 .ssn{font-family:'Oswald',sans-serif;font-size:1.9rem;font-weight:600;color:var(--white)}
 .ssl{font-family:'JetBrains Mono',monospace;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 
+/* ── TEAM ── */
+#team{background:var(--bg);padding:80px 0}
+.tg{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px}
+@media(max-width:768px){.tg{grid-template-columns:1fr}}
+.tc2{background:var(--bg2);border:1px solid rgba(240,235,227,.06);padding:28px 22px;text-align:center;transition:border-color .25s,transform .25s;position:relative;overflow:hidden}
+.tc2:hover{border-color:rgba(232,0,29,.35);transform:translateY(-4px)}
+.tc2::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--red);transform:scaleX(0);transition:transform .35s}
+.tc2:hover::before{transform:scaleX(1)}
+.tav{width:62px;height:62px;margin:0 auto 14px;background:rgba(232,0,29,.1);border:2px solid rgba(232,0,29,.2);clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:1.3rem;font-weight:700;color:var(--red);transition:background .25s;text-decoration:none}
+.tc2:hover .tav{background:rgba(232,0,29,.2)}
+.tn{font-family:'Oswald',sans-serif;font-size:1rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--white);margin-bottom:4px}
+.tr2{font-family:'JetBrains Mono',monospace;font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:var(--red);margin-bottom:12px}
+.tb2{font-size:.8rem;font-weight:300;line-height:1.65;color:var(--dim2)}
+.tso{display:flex;justify-content:center;gap:8px;margin-top:14px}
+.ts{width:26px;height:26px;border:1px solid rgba(240,235,227,.1);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--dim2);text-decoration:none;transition:border-color .2s,color .2s;font-family:'JetBrains Mono',monospace}
+.ts:hover{border-color:var(--red);color:var(--red)}
+
 /* ── ROADMAP ── */
 #roadmap{background:var(--bg);padding:80px 0}
 .rg{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(232,0,29,.1);margin-top:44px}
@@ -253,6 +270,7 @@ footer{background:var(--bg2);border-top:3px solid var(--red);padding:52px 32px 2
     <li><a href="#features">Features</a></li>
     <li><a href="#how">How To</a></li>
     <li><a href="#about">About</a></li>
+    <li><a href="#team">Team</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#faq">FAQ</a></li>
   </ul>
@@ -267,6 +285,7 @@ footer{background:var(--bg2);border-top:3px solid var(--red);padding:52px 32px 2
   <a href="#features" onclick="closeM()">Features</a>
   <a href="#how" onclick="closeM()">How To</a>
   <a href="#about" onclick="closeM()">About</a>
+  <a href="#team" onclick="closeM()">Team</a>
   <a href="#roadmap" onclick="closeM()">Roadmap</a>
   <a href="#faq" onclick="closeM()">FAQ</a>
   <a href="https://t.me/mangaloreagent_bot" target="_blank" onclick="closeM()">Launch Bot ↗</a>
@@ -401,6 +420,46 @@ footer{background:var(--bg2);border-top:3px solid var(--red);padding:52px 32px 2
   </div>
 </section>
 
+<!-- TEAM -->
+<section id="team">
+  <div class="wrap">
+    <div class="sl rv">The People</div>
+    <h2 class="rv">BUILT BY FANS, <span class="o">FOR FANS</span></h2>
+    <p class="sdesc rv">A small team of manga lovers, Web3 builders, and AI enthusiasts united by one obsession.</p>
+    <div class="tg">
+      <div class="tc2 rv d1">
+        <a href="https://x.com/mangaloredotfun" target="_blank" class="tav">RK</a>
+        <div class="tn">Ryu Kaito</div>
+        <div class="tr2">Founder & Vision</div>
+        <p class="tb2">Serial Web3 builder. Manga collector since age 9. Believes every fan deserves to be rewarded for their passion.</p>
+        <div class="tso">
+          <a href="https://x.com/mangaloredotfun" target="_blank" class="ts">𝕏</a>
+          <a href="https://github.com/agentmangalore/mangalore" target="_blank" class="ts">gh</a>
+        </div>
+      </div>
+      <div class="tc2 rv d2">
+        <a href="https://x.com/azriyutaka" target="_blank" class="tav">AY</a>
+        <div class="tn">Azri Yutaka</div>
+        <div class="tr2">Developer</div>
+        <p class="tb2">Full-stack developer specializing in Telegram bots and Solana smart contracts. elizaOS contributor and devoted One Piece reader.</p>
+        <div class="tso">
+          <a href="https://x.com/azriyutaka" target="_blank" class="ts">𝕏</a>
+          <a href="https://github.com/agentmangalore/mangalore" target="_blank" class="ts">gh</a>
+        </div>
+      </div>
+      <div class="tc2 rv d3">
+        <a href="https://x.com/mangaloredotfun" target="_blank" class="tav">DM</a>
+        <div class="tn">Dani Mahendra</div>
+        <div class="tr2">Design & Experience</div>
+        <p class="tb2">Product designer obsessed with bold aesthetics and manga-grade visual identity. Berserk and Vagabond are his sacred texts.</p>
+        <div class="tso">
+          <a href="https://x.com/mangaloredotfun" target="_blank" class="ts">𝕏</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ROADMAP -->
 <section id="roadmap" style="background:var(--bg);padding:80px 0">
   <div class="wrap">
@@ -461,7 +520,8 @@ footer{background:var(--bg2);border-top:3px solid var(--red);padding:52px 32px 2
         <p class="ft-tag">The AI manga companion that rewards your passion. Built on Solana. Powered by elizaOS.</p>
         <span class="ft-chain">◆ LORE Token · Solana · 2026</span>
         <div class="ft-socs">
-          <a href="https://t.me/mangaloreagent_bot" target="_blank" class="ft-soc" title="Telegram">✈</a>
+          <a href="https://t.me/mangaloreagent_bot" target="_blank" class="ft-soc" title="Telegram Bot">✈</a>
+          <a href="https://t.me/mangalorecommunity" target="_blank" class="ft-soc" title="Telegram Community">tg</a>
           <a href="https://x.com/mangaloredotfun" target="_blank" class="ft-soc" title="X / Twitter">𝕏</a>
           <a href="https://github.com/agentmangalore/mangalore" target="_blank" class="ft-soc" title="GitHub">gh</a>
           <a href="https://orynth.dev/projects/mangalore" target="_blank" class="ft-soc" title="Orynth">◆</a>
@@ -488,6 +548,7 @@ footer{background:var(--bg2);border-top:3px solid var(--red);padding:52px 32px 2
         <div class="ft-ct">Community</div>
         <ul class="ft-ul">
           <li><a href="https://t.me/mangaloreagent_bot" target="_blank">Telegram Bot</a></li>
+          <li><a href="https://t.me/mangalorecommunity" target="_blank">Telegram Community</a></li>
           <li><a href="https://x.com/mangaloredotfun" target="_blank">Twitter / X</a></li>
           <li><a href="https://github.com/agentmangalore/mangalore" target="_blank">GitHub</a></li>
         </ul>
