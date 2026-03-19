@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MangaLore — AI Manga Companion on Solana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  /* ── RESET & BASE ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --gold:        #D4AF37;
+    --gold-light:  #F0D060;
+    --gold-dim:    #9A7B1E;
+    --gold-dark:   #4A3508;
+    --black:       #06040C;
+    --deep:        #0D0820;
+    --surface:     #110E22;
+    --surface2:    #18142E;
+    --text:        #E8E0CC;
+    --text-dim:    #8A7F6A;
+    --accent:      #7B4FBF;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Crimson Pro', Georgia, serif;
+    background: var(--black);
+    color: var(--text);
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* ── CUSTOM CURSOR ── */
+  .cursor {
+    width: 12px; height: 12px;
+    background: var(--gold);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s, opacity 0.2s;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid var(--gold);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease-out, width 0.3s, height 0.3s, opacity 0.3s;
+    opacity: 0.5;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 20px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(180deg, rgba(6,4,12,0.95) 0%, transparent 100%);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(212,175,55,0.08);
+  }
+  .nav-logo {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem; font-weight: 900;
+    letter-spacing: 0.15em;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dim));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 36px; list-style: none; align-items: center; }
+  .nav-links a {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; letter-spacing: 0.12em;
+    color: var(--text-dim); text-decoration: none; text-transform: uppercase;
+    transition: color 0.3s;
+  }
+  .nav-links a:hover { color: var(--gold); }
+  .nav-cta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; letter-spacing: 0.12em;
+    padding: 10px 22px;
+    border: 1px solid var(--gold);
+    color: var(--gold) !important;
+    text-transform: uppercase;
+    transition: background 0.3s, color 0.3s !important;
+  }
+  .nav-cta:hover { background: var(--gold) !important; color: var(--black) !important; -webkit-text-fill-color: var(--black) !important; }
+
+  /* Mobile nav */
+  .nav-burger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; }
+  .nav-burger span { display: block; width: 24px; height: 1px; background: var(--gold); transition: 0.3s; }
+  .mobile-menu {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(6,4,12,0.98); z-index: 99;
+    flex-direction: column; align-items: center; justify-content: center; gap: 36px;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu a {
+    font-family: 'Cinzel', serif; font-size: 1.6rem; font-weight: 600;
+    letter-spacing: 0.2em; color: var(--gold); text-decoration: none;
+    text-transform: uppercase; opacity: 0;
+    animation: fadeUp 0.4s forwards;
+  }
+  .mobile-menu a:nth-child(1){animation-delay:0.1s}
+  .mobile-menu a:nth-child(2){animation-delay:0.2s}
+  .mobile-menu a:nth-child(3){animation-delay:0.3s}
+  .mobile-menu a:nth-child(4){animation-delay:0.4s}
+  .mobile-menu a:nth-child(5){animation-delay:0.5s}
+  .mobile-menu a:nth-child(6){animation-delay:0.6s}
+  .mobile-close {
+    position: absolute; top: 28px; right: 40px;
+    font-size: 2rem; color: var(--gold); cursor: pointer; line-height: 1;
+  }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 120px 24px 80px;
+    position: relative; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(123,79,191,0.12) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 40% at 20% 80%, rgba(212,175,55,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 80% 20%, rgba(212,175,55,0.04) 0%, transparent 60%);
+  }
+  .hero-grid {
+    position: absolute; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(212,175,55,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212,175,55,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  }
+
+  /* floating particles */
+  .particles { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+  .particle {
+    position: absolute; width: 2px; height: 2px;
+    background: var(--gold); border-radius: 50%; opacity: 0;
+    animation: float var(--dur) var(--delay) infinite ease-in-out;
+  }
+  @keyframes float {
+    0%   { opacity: 0; transform: translateY(0) scale(1); }
+    20%  { opacity: 0.6; }
+    80%  { opacity: 0.4; }
+    100% { opacity: 0; transform: translateY(-120px) scale(0.3); }
+  }
+
+  .hero-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold-dim); border: 1px solid rgba(212,175,55,0.2);
+    padding: 8px 20px; display: inline-block; margin-bottom: 36px;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.8s 0.2s both;
+  }
+  .hero-badge::before, .hero-badge::after {
+    content: '◆'; margin: 0 8px; opacity: 0.5;
+  }
+
+  .hero-title {
+    font-family: 'Cinzel', serif; font-size: clamp(3.2rem, 10vw, 8rem);
+    font-weight: 900; line-height: 0.95; letter-spacing: 0.05em;
+    background: linear-gradient(160deg, var(--gold-light) 0%, var(--gold) 40%, var(--gold-dim) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.8s 0.4s both;
+  }
+  .hero-sub {
+    font-family: 'Cinzel', serif; font-size: clamp(1rem, 3vw, 1.8rem);
+    font-weight: 400; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--gold-dim); margin-top: 12px; position: relative; z-index: 1;
+    animation: fadeUp 0.8s 0.5s both;
+  }
+  .hero-divider {
+    width: 120px; height: 1px; background: var(--gold-dim);
+    margin: 36px auto; position: relative; z-index: 1;
+    animation: fadeUp 0.8s 0.6s both;
+  }
+  .hero-divider::before {
+    content: '◆'; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--gold); font-size: 0.6rem;
+    background: var(--black); padding: 0 8px;
+  }
+  .hero-desc {
+    font-size: clamp(1rem, 2.5vw, 1.25rem); font-weight: 300; line-height: 1.8;
+    color: var(--text-dim); max-width: 580px; margin: 0 auto 48px;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.8s 0.7s both;
+  }
+  .hero-desc em { color: var(--gold); font-style: italic; }
+
+  .hero-btns {
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.8s 0.9s both;
+  }
+  .btn-primary {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 16px 36px; text-decoration: none;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    color: var(--black); font-weight: 500;
+    position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 30px rgba(212,175,55,0.25);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(212,175,55,0.4); }
+  .btn-primary::after {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255,255,255,0.1);
+    transform: translateX(-100%); transition: transform 0.3s;
+  }
+  .btn-primary:hover::after { transform: translateX(100%); }
+
+  .btn-secondary {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 15px 36px; text-decoration: none;
+    border: 1px solid rgba(212,175,55,0.4); color: var(--gold);
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .btn-secondary:hover { background: rgba(212,175,55,0.08); border-color: var(--gold); }
+
+  /* scroll indicator */
+  .scroll-ind {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    opacity: 0.4; animation: fadeUp 1s 1.4s both;
+  }
+  .scroll-ind span {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+    letter-spacing: 0.2em; color: var(--gold-dim); text-transform: uppercase;
+  }
+  .scroll-line {
+    width: 1px; height: 40px; background: linear-gradient(var(--gold-dim), transparent);
+    animation: scrollLine 2s infinite;
+  }
+  @keyframes scrollLine {
+    0%   { transform: scaleY(0); transform-origin: top; }
+    50%  { transform: scaleY(1); transform-origin: top; }
+    51%  { transform: scaleY(1); transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; }
+  }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    background: var(--surface);
+    border-top: 1px solid rgba(212,175,55,0.12);
+    border-bottom: 1px solid rgba(212,175,55,0.12);
+    padding: 28px 40px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; flex-wrap: wrap;
+    overflow: hidden;
+  }
+  .stat-item {
+    flex: 1; min-width: 140px; text-align: center;
+    padding: 16px 20px;
+    position: relative;
+  }
+  .stat-item + .stat-item::before {
+    content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+    width: 1px; background: rgba(212,175,55,0.15);
+  }
+  .stat-num {
+    font-family: 'Cinzel', serif; font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700; color: var(--gold); line-height: 1;
+  }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--text-dim); margin-top: 6px;
+  }
+
+  /* ── SECTIONS COMMON ── */
+  section { padding: 100px 24px; }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold-dim);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 12px;
+  }
+  .section-label::before { content: ''; width: 32px; height: 1px; background: var(--gold-dim); }
+  .section-title {
+    font-family: 'Cinzel', serif; font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700; line-height: 1.1;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 20px;
+  }
+  .section-desc {
+    font-size: 1.1rem; font-weight: 300; line-height: 1.8;
+    color: var(--text-dim); max-width: 520px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* ── FEATURES ── */
+  #features { background: var(--deep); }
+  .features-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1px; background: rgba(212,175,55,0.1);
+    margin-top: 60px; border: 1px solid rgba(212,175,55,0.1);
+  }
+  .feature-card {
+    background: var(--deep);
+    padding: 44px 36px;
+    position: relative; overflow: hidden;
+    transition: background 0.3s;
+  }
+  .feature-card:hover { background: var(--surface); }
+  .feature-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    transform: scaleX(0); transition: transform 0.4s;
+  }
+  .feature-card:hover::before { transform: scaleX(1); }
+  .feature-icon {
+    font-size: 2rem; margin-bottom: 20px; display: block;
+  }
+  .feature-num {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+    letter-spacing: 0.2em; color: var(--gold-dark);
+    position: absolute; top: 20px; right: 24px;
+  }
+  .feature-title {
+    font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: 600;
+    color: var(--gold); margin-bottom: 12px; letter-spacing: 0.05em;
+  }
+  .feature-desc {
+    font-size: 0.95rem; font-weight: 300; line-height: 1.75;
+    color: var(--text-dim);
+  }
+
+  /* ── HOW IT WORKS ── */
+  #how { background: var(--black); }
+  .steps { margin-top: 70px; display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: grid; grid-template-columns: 80px 1fr; gap: 32px;
+    padding: 44px 0; border-bottom: 1px solid rgba(212,175,55,0.08);
+    align-items: start; position: relative;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    font-family: 'Cinzel', serif; font-size: 3rem; font-weight: 900;
+    color: var(--gold-dark); line-height: 1; text-align: center;
+    position: sticky; top: 100px;
+  }
+  .step-content {}
+  .step-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dim);
+    margin-bottom: 10px;
+  }
+  .step-title {
+    font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 600;
+    color: var(--text); margin-bottom: 14px;
+  }
+  .step-desc {
+    font-size: 1rem; font-weight: 300; line-height: 1.8; color: var(--text-dim);
+    max-width: 580px;
+  }
+  .step-cmd {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+    background: var(--surface); border: 1px solid rgba(212,175,55,0.15);
+    color: var(--gold); padding: 10px 18px; display: inline-block; margin-top: 16px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── TOKENOMICS ── */
+  #tokenomics { background: var(--surface); }
+  .token-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 40px; margin-top: 60px; align-items: start;
+  }
+  .token-info {}
+  .token-table { width: 100%; border-collapse: collapse; margin-top: 28px; }
+  .token-table tr { border-bottom: 1px solid rgba(212,175,55,0.08); }
+  .token-table td {
+    padding: 16px 12px; font-size: 0.95rem;
+  }
+  .token-table td:first-child {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+    letter-spacing: 0.1em; color: var(--gold-dim); text-transform: uppercase;
+  }
+  .token-table td:last-child { color: var(--text); text-align: right; font-weight: 300; }
+  .token-highlight { color: var(--gold) !important; font-family: 'Cinzel', serif !important; font-size: 1rem !important; }
+
+  .earn-cards { display: flex; flex-direction: column; gap: 16px; }
+  .earn-card {
+    background: var(--surface2); border: 1px solid rgba(212,175,55,0.1);
+    padding: 24px 28px; display: flex; align-items: center; gap: 20px;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+  .earn-card:hover { border-color: rgba(212,175,55,0.35); transform: translateX(4px); }
+  .earn-icon { font-size: 1.5rem; flex-shrink: 0; }
+  .earn-label {
+    font-family: 'Cinzel', serif; font-size: 0.95rem; font-weight: 600;
+    color: var(--text); margin-bottom: 4px;
+  }
+  .earn-pts {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+    color: var(--gold); letter-spacing: 0.1em;
+  }
+
+  /* ── ABOUT ── */
+  #about { background: var(--deep); }
+  .about-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 80px; margin-top: 60px; align-items: center;
+  }
+  .about-visual {
+    position: relative; display: flex; align-items: center; justify-content: center;
+  }
+  .about-ring {
+    width: 320px; height: 320px; border-radius: 50%;
+    border: 1px solid rgba(212,175,55,0.2);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    animation: rotateSlow 30s linear infinite;
+  }
+  @keyframes rotateSlow { to { transform: rotate(360deg); } }
+  .about-ring::before {
+    content: ''; position: absolute;
+    width: 280px; height: 280px; border-radius: 50%;
+    border: 1px solid rgba(212,175,55,0.1);
+  }
+  .about-ring-inner {
+    width: 220px; height: 220px; border-radius: 50%;
+    background: var(--surface); border: 1px solid rgba(212,175,55,0.25);
+    display: flex; align-items: center; justify-content: center;
+    animation: rotateSlow 30s linear infinite reverse;
+  }
+  .about-M {
+    font-family: 'Cinzel', serif; font-size: 5rem; font-weight: 900;
+    background: linear-gradient(160deg, var(--gold-light), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    animation: rotateSlow 30s linear infinite;
+  }
+  .about-dots {
+    position: absolute; inset: 0;
+  }
+  .about-dot {
+    position: absolute; width: 6px; height: 6px;
+    background: var(--gold); border-radius: 50%;
+    top: 50%; left: 50%;
+    transform-origin: 0 0;
+  }
+  .about-content {}
+  .about-body {
+    font-size: 1.05rem; font-weight: 300; line-height: 1.9; color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+  .about-body strong { color: var(--gold); font-weight: 600; }
+  .about-tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .about-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    border: 1px solid rgba(212,175,55,0.2); color: var(--gold-dim);
+    padding: 7px 14px;
+  }
+
+  /* ── TEAM ── */
+  #team { background: var(--black); }
+  .team-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px; margin-top: 60px;
+  }
+  .team-card {
+    background: var(--surface); border: 1px solid rgba(212,175,55,0.08);
+    padding: 36px 28px; text-align: center;
+    transition: border-color 0.3s, transform 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .team-card:hover { border-color: rgba(212,175,55,0.3); transform: translateY(-4px); }
+  .team-card::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    transform: scaleX(0); transition: transform 0.4s;
+  }
+  .team-card:hover::after { transform: scaleX(1); }
+  .team-avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    border: 2px solid rgba(212,175,55,0.3);
+    background: var(--surface2);
+    margin: 0 auto 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 700;
+    color: var(--gold);
+  }
+  .team-name {
+    font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 600;
+    color: var(--text); margin-bottom: 6px;
+  }
+  .team-role {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+    letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold-dim);
+    margin-bottom: 16px;
+  }
+  .team-bio { font-size: 0.88rem; font-weight: 300; line-height: 1.7; color: var(--text-dim); }
+  .team-socials { display: flex; justify-content: center; gap: 12px; margin-top: 20px; }
+  .team-social {
+    width: 30px; height: 30px; border: 1px solid rgba(212,175,55,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; color: var(--gold-dim);
+    text-decoration: none; transition: border-color 0.3s, color 0.3s;
+  }
+  .team-social:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ── ROADMAP ── */
+  #roadmap { background: var(--surface); }
+  .roadmap-track {
+    margin-top: 70px; position: relative;
+    padding-left: 32px;
+  }
+  .roadmap-line {
+    position: absolute; left: 0; top: 8px; bottom: 8px;
+    width: 1px; background: linear-gradient(var(--gold-dark), var(--gold-dim), var(--gold-dark));
+  }
+  .roadmap-item {
+    position: relative; padding: 0 0 48px 44px;
+  }
+  .roadmap-item:last-child { padding-bottom: 0; }
+  .roadmap-dot {
+    position: absolute; left: -6px; top: 6px;
+    width: 12px; height: 12px;
+    background: var(--black); border: 2px solid var(--gold-dim);
+    border-radius: 50%; transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .roadmap-item.active .roadmap-dot {
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(212,175,55,0.4);
+  }
+  .roadmap-phase {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold-dim); margin-bottom: 8px;
+  }
+  .roadmap-item.active .roadmap-phase { color: var(--gold); }
+  .roadmap-title {
+    font-family: 'Cinzel', serif; font-size: 1.15rem; font-weight: 600;
+    color: var(--text); margin-bottom: 12px;
+  }
+  .roadmap-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .roadmap-list li {
+    font-size: 0.92rem; font-weight: 300; color: var(--text-dim);
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .roadmap-list li::before { content: '◆'; color: var(--gold-dark); font-size: 0.5rem; margin-top: 6px; flex-shrink: 0; }
+  .roadmap-item.active .roadmap-list li::before { color: var(--gold-dim); }
+
+  /* ── FAQ ── */
+  #faq { background: var(--deep); }
+  .faq-list { margin-top: 60px; display: flex; flex-direction: column; gap: 0; }
+  .faq-item { border-bottom: 1px solid rgba(212,175,55,0.1); }
+  .faq-q {
+    width: 100%; background: none; border: none; text-align: left;
+    padding: 24px 0; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; gap: 20px;
+  }
+  .faq-q-text {
+    font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 600;
+    color: var(--text); transition: color 0.3s;
+  }
+  .faq-item.open .faq-q-text { color: var(--gold); }
+  .faq-icon {
+    font-family: 'JetBrains Mono', monospace; font-size: 1.2rem;
+    color: var(--gold-dim); flex-shrink: 0; transition: transform 0.3s;
+  }
+  .faq-item.open .faq-icon { transform: rotate(45deg); color: var(--gold); }
+  .faq-a {
+    max-height: 0; overflow: hidden; transition: max-height 0.4s ease;
+  }
+  .faq-item.open .faq-a { max-height: 200px; }
+  .faq-a-inner {
+    font-size: 0.98rem; font-weight: 300; line-height: 1.8;
+    color: var(--text-dim); padding-bottom: 24px;
+  }
+
+  /* ── CTA SECTION ── */
+  #cta {
+    background: var(--black);
+    text-align: center; padding: 120px 24px;
+    position: relative; overflow: hidden;
+  }
+  .cta-glow {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px; height: 600px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(123,79,191,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .cta-ring {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 400px; height: 400px; border-radius: 50%;
+    border: 1px solid rgba(212,175,55,0.06);
+  }
+  .cta-ring2 {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 600px; height: 600px; border-radius: 50%;
+    border: 1px solid rgba(212,175,55,0.03);
+  }
+  .cta-title {
+    font-family: 'Cinzel', serif; font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 900; line-height: 1.1;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    position: relative; z-index: 1; margin-bottom: 20px;
+  }
+  .cta-sub {
+    font-size: 1.05rem; font-weight: 300; color: var(--text-dim);
+    max-width: 440px; margin: 0 auto 48px; line-height: 1.7;
+    position: relative; z-index: 1;
+  }
+  .cta-telegram {
+    display: inline-flex; align-items: center; gap: 14px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+    letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    color: var(--black); font-weight: 500;
+    padding: 18px 44px; position: relative; z-index: 1;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 40px rgba(212,175,55,0.2);
+  }
+  .cta-telegram:hover { transform: translateY(-3px); box-shadow: 0 12px 50px rgba(212,175,55,0.35); }
+  .telegram-icon { font-size: 1.2rem; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--surface);
+    border-top: 1px solid rgba(212,175,55,0.1);
+    padding: 60px 40px 40px;
+  }
+  .footer-grid {
+    max-width: 1100px; margin: 0 auto;
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 48px; margin-bottom: 48px;
+  }
+  .footer-brand {}
+  .footer-logo {
+    font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 900;
+    letter-spacing: 0.15em;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    display: block; margin-bottom: 16px;
+  }
+  .footer-tagline {
+    font-size: 0.9rem; font-weight: 300; line-height: 1.7; color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+  .footer-solana {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+    letter-spacing: 0.12em; color: var(--gold-dark); text-transform: uppercase;
+  }
+  .footer-col-title {
+    font-family: 'Cinzel', serif; font-size: 0.8rem; font-weight: 600;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold-dim); margin-bottom: 20px;
+  }
+  .footer-links { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .footer-links a {
+    font-size: 0.88rem; font-weight: 300; color: var(--text-dim);
+    text-decoration: none; transition: color 0.3s;
+  }
+  .footer-links a:hover { color: var(--gold); }
+  .footer-bottom {
+    max-width: 1100px; margin: 0 auto;
+    border-top: 1px solid rgba(212,175,55,0.08);
+    padding-top: 28px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: gap;
+  }
+  .footer-copy {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+    letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase;
+  }
+  .footer-chain {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+    letter-spacing: 0.1em; color: var(--gold-dark); text-transform: uppercase;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .reveal {
+    opacity: 0; transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .nav-links { display: none; }
+    .nav-burger { display: flex; }
+    body { cursor: auto; }
+    .cursor, .cursor-ring { display: none; }
+
+    section { padding: 70px 20px; }
+    .stats-bar { gap: 0; }
+    .stat-item { min-width: 100px; }
+
+    .about-grid { grid-template-columns: 1fr; }
+    .about-visual { order: -1; }
+    .about-ring { width: 220px; height: 220px; }
+    .about-ring-inner { width: 160px; height: 160px; }
+    .about-M { font-size: 3.5rem; }
+
+    .token-grid { grid-template-columns: 1fr; }
+
+    .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    .footer-brand { grid-column: 1 / -1; }
+    .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+
+    .step { grid-template-columns: 48px 1fr; gap: 16px; }
+    .step-num { font-size: 2rem; }
+
+    .hero-btns { flex-direction: column; align-items: center; }
+    .btn-primary, .btn-secondary { width: 100%; max-width: 280px; text-align: center; }
+  }
+
+  @media (max-width: 480px) {
+    .features-grid { grid-template-columns: 1fr; }
+    .team-grid { grid-template-columns: 1fr 1fr; }
+    .footer-grid { grid-template-columns: 1fr; }
+    .stats-bar { flex-wrap: wrap; }
+    .stat-item { min-width: 45%; }
+    .stat-item + .stat-item::before { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#hero" class="nav-logo">MANGALORE</a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How To</a></li>
+    <li><a href="#tokenomics">Rewards</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#team">Team</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="https://t.me/mangaloreagent_bot" target="_blank" class="nav-cta">Launch Bot ↗</a></li>
+  </ul>
+  <div class="nav-burger" id="burger" onclick="openMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <span class="mobile-close" onclick="closeMenu()">×</span>
+  <a href="#features" onclick="closeMenu()">Features</a>
+  <a href="#how" onclick="closeMenu()">How To</a>
+  <a href="#tokenomics" onclick="closeMenu()">Rewards</a>
+  <a href="#about" onclick="closeMenu()">About</a>
+  <a href="#team" onclick="closeMenu()">Team</a>
+  <a href="#roadmap" onclick="closeMenu()">Roadmap</a>
+  <a href="https://t.me/mangaloreagent_bot" target="_blank">Launch Bot ↗</a>
+</div>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="hero-badge">Powered by Solana · AI Agent · elizaOS</div>
+  <h1 class="hero-title">MANGA<br/>LORE</h1>
+  <p class="hero-sub">Your Fandom · Your Rewards</p>
+  <div class="hero-divider"></div>
+  <p class="hero-desc">
+    The AI manga companion that turns your passion into <em>daily quizzes</em>,
+    <em>alternative universes</em>, and <em>real LORE token rewards</em> on Solana.
+    18,000+ titles. One Telegram bot.
+  </p>
+  <div class="hero-btns">
+    <a href="https://t.me/mangaloreagent_bot" target="_blank" class="btn-primary">
+      ✦ Launch on Telegram
+    </a>
+    <a href="#how" class="btn-secondary">How It Works</a>
+  </div>
+  <div class="scroll-ind">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat-item reveal">
+    <div class="stat-num" data-target="18000">0</div>
+    <div class="stat-label">Manga Titles</div>
+  </div>
+  <div class="stat-item reveal">
+    <div class="stat-num" data-target="4">0</div>
+    <div class="stat-label">Core Features</div>
+  </div>
+  <div class="stat-item reveal">
+    <div class="stat-num" data-target="500">0</div>
+    <div class="stat-label">Characters</div>
+  </div>
+  <div class="stat-item reveal">
+    <div class="stat-num" data-target="100">0</div>
+    <div class="stat-label">% On-Chain</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <div class="section-label">What We Offer</div>
+    <h2 class="section-title">Four Ways to<br/>Live the Lore</h2>
+    <p class="section-desc">Every feature is designed to deepen your connection with manga — and reward you for it.</p>
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <span class="feature-num">01</span>
+        <span class="feature-icon">🎯</span>
+        <div class="feature-title">Daily Quest</div>
+        <p class="feature-desc">AI-generated trivia from 18,000+ manga titles. Three difficulty tiers — Easy, Hard, and Legendary. Answer correctly, earn LORE Points, extend your streak.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-num">02</span>
+        <span class="feature-icon">✍️</span>
+        <div class="feature-title">Alternative Universe</div>
+        <p class="feature-desc">What if Eren chose differently? AI rewrites iconic scenes faithful to each manga's lore. Vote the best alternate endings. Request yours with LORE Points.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-num">03</span>
+        <span class="feature-icon">🎴</span>
+        <div class="feature-title">Character Match</div>
+        <p class="feature-desc">Five personality questions. 500+ characters. Discover which manga legend matches your soul — and claim a free NFT card on Solana to prove it.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-num">04</span>
+        <span class="feature-icon">🏆</span>
+        <div class="feature-title">Leaderboard & Rewards</div>
+        <p class="feature-desc">Compete globally. Top monthly players receive SOL directly to their wallet. Streaks multiply your rewards. The more you engage, the more you earn.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <div class="section-label">How To Use</div>
+    <h2 class="section-title">Start in<br/>60 Seconds</h2>
+    <p class="section-desc">No wallet required to begin. Connect when you're ready to claim rewards.</p>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <div class="step-tag">Step One</div>
+          <div class="step-title">Open MangaLore on Telegram</div>
+          <p class="step-desc">Find us on Telegram and hit Start. MangaLore will greet you as your personal AI manga companion and walk you through the four core experiences.</p>
+          <span class="step-cmd">@mangaloreagent_bot → /start</span>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <div class="step-tag">Step Two</div>
+          <div class="step-title">Take Your First Daily Quest</div>
+          <p class="step-desc">Pick any manga or let MangaLore surprise you. Choose your difficulty — Easy warms you up, Legendary tests true mastery. You have 30 seconds per question.</p>
+          <span class="step-cmd">/quiz → pick manga → answer A/B/C/D</span>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <div class="step-tag">Step Three</div>
+          <div class="step-title">Explore Alternative Universes</div>
+          <p class="step-desc">Pick a manga, name a scene you wish had gone differently, and watch the AI rewrite history in 500 words — staying true to the lore you love.</p>
+          <span class="step-cmd">/whatif → manga title → pick scene</span>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <div class="step-tag">Step Four</div>
+          <div class="step-title">Connect Wallet & Claim Rewards</div>
+          <p class="step-desc">Link your Solana wallet to convert LORE Points to LORE Tokens, mint your NFT character card, and receive SOL when you reach the monthly leaderboard top 10.</p>
+          <span class="step-cmd">/wallet → connect Solana → claim</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOKENOMICS -->
+<section id="tokenomics">
+  <div class="container">
+    <div class="section-label">Rewards System</div>
+    <h2 class="section-title">LORE Token<br/>Economy</h2>
+    <div class="token-grid">
+      <div class="token-info reveal">
+        <p class="section-desc">Every interaction earns LORE Points — the in-bot currency that converts to on-chain LORE Tokens on Solana. Real engagement, real rewards.</p>
+        <table class="token-table">
+          <tr><td>Token Name</td><td class="token-highlight">LORE</td></tr>
+          <tr><td>Blockchain</td><td>Solana</td></tr>
+          <tr><td>Base Rate</td><td>1,000 LORE = 0.01 SOL</td></tr>
+          <tr><td>NFT Cards</td><td>Free mint on personality quiz</td></tr>
+          <tr><td>Top 10 Monthly</td><td class="token-highlight">SOL Direct Reward</td></tr>
+          <tr><td>Standard</td><td>Metaplex / SPL Token</td></tr>
+        </table>
+      </div>
+      <div class="earn-cards reveal">
+        <div class="earn-card">
+          <span class="earn-icon">🎯</span>
+          <div>
+            <div class="earn-label">Correct Quiz Answer</div>
+            <div class="earn-pts">+10 LORE Points</div>
+          </div>
+        </div>
+        <div class="earn-card">
+          <span class="earn-icon">🔥</span>
+          <div>
+            <div class="earn-label">7-Day Streak Bonus</div>
+            <div class="earn-pts">+100 LORE Points</div>
+          </div>
+        </div>
+        <div class="earn-card">
+          <span class="earn-icon">👍</span>
+          <div>
+            <div class="earn-label">Vote Alternative Ending</div>
+            <div class="earn-pts">+5 LORE Points</div>
+          </div>
+        </div>
+        <div class="earn-card">
+          <span class="earn-icon">👥</span>
+          <div>
+            <div class="earn-label">Refer a Friend</div>
+            <div class="earn-pts">+50 LORE Points</div>
+          </div>
+        </div>
+        <div class="earn-card">
+          <span class="earn-icon">🏆</span>
+          <div>
+            <div class="earn-label">Top 10 Monthly Rank</div>
+            <div class="earn-pts">SOL Direct to Wallet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="container">
+    <div class="about-grid">
+      <div class="about-visual reveal">
+        <div class="about-ring">
+          <div class="about-ring-inner">
+            <div class="about-M">M</div>
+          </div>
+        </div>
+      </div>
+      <div class="about-content reveal">
+        <div class="section-label">About MangaLore</div>
+        <h2 class="section-title">Where Fandom<br/>Meets the Chain</h2>
+        <p class="about-body">
+          MangaLore was born from a simple belief: <strong>manga fans deserve more than passive consumption</strong>. 
+          The stories we love shape how we think, feel, and see the world — and that passion should be celebrated, 
+          challenged, and rewarded.
+        </p>
+        <p class="about-body">
+          Built on <strong>Solana</strong> for speed and low-cost transactions, powered by <strong>elizaOS</strong> 
+          for agent intelligence, and fueled by open manga databases including AniList, MangaDex, and Jikan — 
+          MangaLore is the first AI companion that turns your knowledge into <strong>real on-chain rewards</strong>.
+        </p>
+        <p class="about-body">
+          We are not a platform. We are a companion. One that grows with you, learns your taste, 
+          and lives inside the app you already use every day.
+        </p>
+        <div class="about-tags">
+          <span class="about-tag">elizaOS</span>
+          <span class="about-tag">AniList API</span>
+          <span class="about-tag">MangaDex</span>
+          <span class="about-tag">Solana Web3</span>
+          <span class="about-tag">Metaplex NFT</span>
+          <span class="about-tag">Jikan API</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section id="team">
+  <div class="container">
+    <div class="section-label">The People</div>
+    <h2 class="section-title">Built by Fans,<br/>for Fans</h2>
+    <p class="section-desc">A small team of manga lovers, Web3 builders, and AI enthusiasts united by one obsession.</p>
+    <div class="team-grid">
+      <div class="team-card reveal">
+        <div class="team-avatar">RK</div>
+        <div class="team-name">Ryu Kaito</div>
+        <div class="team-role">Founder & Vision</div>
+        <p class="team-bio">Serial Web3 builder. Manga collector since age 9. Believes every fan deserves to be rewarded for their passion.</p>
+        <div class="team-socials">
+          <a href="#" class="team-social">𝕏</a>
+          <a href="#" class="team-social">in</a>
+        </div>
+      </div>
+      <div class="team-card reveal">
+        <div class="team-avatar">SN</div>
+        <div class="team-name">Sora Nakamura</div>
+        <div class="team-role">AI & Agent Lead</div>
+        <p class="team-bio">elizaOS contributor. Specializes in LLM agent behavior and personality design. Attack on Titan devotee.</p>
+        <div class="team-socials">
+          <a href="#" class="team-social">𝕏</a>
+          <a href="#" class="team-social">gh</a>
+        </div>
+      </div>
+      <div class="team-card reveal">
+        <div class="team-avatar">AL</div>
+        <div class="team-name">Aria Lim</div>
+        <div class="team-role">Solana Engineer</div>
+        <p class="team-bio">Solana smart contract specialist. Built token systems for 3 DeFi protocols. One Piece chapter-by-chapter reader.</p>
+        <div class="team-socials">
+          <a href="#" class="team-social">𝕏</a>
+          <a href="#" class="team-social">gh</a>
+        </div>
+      </div>
+      <div class="team-card reveal">
+        <div class="team-avatar">DM</div>
+        <div class="team-name">Dani Mahendra</div>
+        <div class="team-role">Design & Experience</div>
+        <p class="team-bio">Product designer obsessed with dark aesthetics and precision type. Berserk and Vagabond are his sacred texts.</p>
+        <div class="team-socials">
+          <a href="#" class="team-social">𝕏</a>
+          <a href="#" class="team-social">be</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="container">
+    <div class="section-label">The Journey</div>
+    <h2 class="section-title">Roadmap</h2>
+    <p class="section-desc">Built transparently, shipped incrementally. Every milestone brings MangaLore closer to the vision.</p>
+    <div class="roadmap-track reveal">
+      <div class="roadmap-line"></div>
+      <div class="roadmap-item active">
+        <div class="roadmap-dot"></div>
+        <div class="roadmap-phase">Phase 01 · Now</div>
+        <div class="roadmap-title">Foundation — Bot Launch</div>
+        <ul class="roadmap-list">
+          <li>Telegram bot live at @mangaloreagent_bot</li>
+          <li>elizaOS personality engine configured</li>
+          <li>AniList + Jikan + MangaDex API integration</li>
+          <li>Daily quiz with streak system</li>
+          <li>Personality quiz with 500+ characters</li>
+        </ul>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-dot"></div>
+        <div class="roadmap-phase">Phase 02 · Month 2</div>
+        <div class="roadmap-title">AI & Rewards Integration</div>
+        <ul class="roadmap-list">
+          <li>AI alternative ending engine (full lore-aware)</li>
+          <li>LORE Points system activated</li>
+          <li>Solana wallet connection via /wallet</li>
+          <li>Global leaderboard with weekly rankings</li>
+          <li>Referral reward system</li>
+        </ul>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-dot"></div>
+        <div class="roadmap-phase">Phase 03 · Month 3</div>
+        <div class="roadmap-title">Token & NFT Launch</div>
+        <ul class="roadmap-list">
+          <li>LORE Token deployed on Solana mainnet</li>
+          <li>NFT character cards — free mint via Metaplex</li>
+          <li>NFT upgrade system (rare / legendary cards)</li>
+          <li>Monthly SOL reward distribution to top 10</li>
+          <li>LORE Token → SOL conversion live</li>
+        </ul>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-dot"></div>
+        <div class="roadmap-phase">Phase 04 · Q3 2026</div>
+        <div class="roadmap-title">Ecosystem Expansion</div>
+        <ul class="roadmap-list">
+          <li>MangaLore Web App — full portal experience</li>
+          <li>Publisher partnerships for sponsored quizzes</li>
+          <li>Group reading clubs with shared leaderboards</li>
+          <li>Agent-to-agent collaboration (Multi-agent swarm)</li>
+          <li>Community DAO for LORE holders</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container">
+    <div class="section-label">Questions</div>
+    <h2 class="section-title">FAQ</h2>
+    <div class="faq-list reveal">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">Do I need a crypto wallet to use MangaLore?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a"><p class="faq-a-inner">No. You can enjoy all quizzes, alternative endings, and personality quizzes without any wallet. A Solana wallet is only needed when you want to claim LORE Tokens, mint your NFT card, or receive SOL rewards from the leaderboard.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">How does the AI generate quiz questions?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a"><p class="faq-a-inner">MangaLore uses a combination of AniList, MangaDex, and Jikan APIs for accurate manga data, then uses an AI engine to generate contextual, lore-accurate questions at three difficulty levels. Questions are generated fresh each day — never the same experience twice.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">Is the NFT character card really free?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a"><p class="faq-a-inner">Yes. After completing the personality quiz, MangaLore mints your matched character as an NFT card on Solana via Metaplex at no cost to you. You only pay standard Solana network fees (fractions of a cent) if applicable. The card is yours to keep, display, or trade.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">Which manga titles are supported?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a"><p class="faq-a-inner">MangaLore pulls from open databases covering 18,000+ manga titles — from mainstream series like One Piece, Naruto, and Attack on Titan, to niche and indie works. If a manga exists in AniList or MangaDex, MangaLore can work with it.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">How are monthly SOL rewards distributed?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a"><p class="faq-a-inner">At the end of each calendar month, the top 10 players on the global leaderboard receive SOL directly to their connected Solana wallet. Distribution is handled automatically via smart contract — no manual claims needed. Reward pool sizes are announced monthly.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span class="faq-q-text">What is elizaOS and why does it matter?</span>
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a"><p class="faq-a-inner">elizaOS is the leading open-source framework for building AI agents on blockchain. It gives MangaLore a true AI personality — not just a scripted chatbot — that can understand context, learn preferences, and operate autonomously on Solana. It's what makes MangaLore feel like a companion, not a tool.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="cta-glow"></div>
+  <div class="cta-ring"></div>
+  <div class="cta-ring2"></div>
+  <h2 class="cta-title reveal">Your Adventure<br/>Starts Now</h2>
+  <p class="cta-sub reveal">Join thousands of manga fans earning LORE tokens while living the stories they love.</p>
+  <a href="https://t.me/mangaloreagent_bot" target="_blank" class="cta-telegram reveal">
+    <span class="telegram-icon">✈</span>
+    Open MangaLore on Telegram
+  </a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <span class="footer-logo">MANGALORE</span>
+      <p class="footer-tagline">The AI manga companion that rewards your passion. Built on Solana. Powered by elizaOS. Fueled by fans.</p>
+      <span class="footer-solana">◆ Built on Solana · 2026</span>
+    </div>
+    <div>
+      <div class="footer-col-title">Product</div>
+      <ul class="footer-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How To Use</a></li>
+        <li><a href="#tokenomics">LORE Token</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+        <li><a href="https://t.me/mangaloreagent_bot" target="_blank">Launch Bot</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Company</div>
+      <ul class="footer-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#team">Team</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Press Kit</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Community</div>
+      <ul class="footer-links">
+        <li><a href="https://t.me/mangaloreagent_bot" target="_blank">Telegram Bot</a></li>
+        <li><a href="#">Twitter / X</a></li>
+        <li><a href="#">Discord</a></li>
+        <li><a href="#">GitHub</a></li>
+        <li><a href="#">Whitepaper</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span class="footer-copy">© 2026 MangaLore. All rights reserved.</span>
+    <span class="footer-chain">LORE Token · Solana Mainnet · elizaOS Agent</span>
+  </div>
+</footer>
+
+<script>
+// ── CURSOR ──
+const cursor = document.getElementById('cursor');
+const ring   = document.getElementById('cursorRing');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+function animCursor() {
+  cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+  rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+  ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+
+// ── PARTICLES ──
+const pc = document.getElementById('particles');
+for (let i = 0; i < 40; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.cssText = `left:${Math.random()*100}%;top:${40+Math.random()*60}%;--dur:${4+Math.random()*6}s;--delay:${Math.random()*8}s`;
+  pc.appendChild(p);
+}
+
+// ── MOBILE MENU ──
+function openMenu()  { document.getElementById('mobileMenu').classList.add('open'); }
+function closeMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+
+// ── SCROLL REVEAL ──
+const observer = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), i * 80);
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── COUNT UP ──
+function countUp(el, target) {
+  const suffix = target >= 1000 ? '+' : (target === 100 ? '%' : '+');
+  const dur = 1800, step = 16;
+  let start = null;
+  function tick(ts) {
+    if (!start) start = ts;
+    const prog = Math.min((ts - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - prog, 3);
+    el.textContent = Math.floor(ease * target).toLocaleString() + suffix;
+    if (prog < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+const countObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const target = parseInt(e.target.dataset.target);
+      countUp(e.target, target);
+      countObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('[data-target]').forEach(el => countObs.observe(el));
+
+// ── FAQ ──
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+
+// ── NAV ACTIVE ──
+const sections = document.querySelectorAll('section[id], div[id]');
+const navLinks = document.querySelectorAll('.nav-links a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.style.color = a.getAttribute('href') === '#'+current ? 'var(--gold)' : '';
+  });
+});
+
+// ── ABOUT DOTS ──
+const dotsContainer = document.querySelector('.about-dots');
+if (dotsContainer) {
+  for (let i = 0; i < 8; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'about-dot';
+    const a = (i / 8) * 2 * Math.PI;
+    const r = 158;
+    dot.style.cssText = `
+      left: calc(50% + ${r * Math.cos(a)}px);
+      top:  calc(50% + ${r * Math.sin(a)}px);
+      transform: translate(-50%, -50%);
+      width: ${i % 2 === 0 ? '6px' : '4px'};
+      height: ${i % 2 === 0 ? '6px' : '4px'};
+      background: ${i % 2 === 0 ? 'var(--gold)' : 'var(--gold-dark)'};
+    `;
+    dotsContainer.appendChild(dot);
+  }
+}
+</script>
+</body>
+</html>
